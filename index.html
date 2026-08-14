@@ -1134,6 +1134,9 @@
            DATA & STATE MANAGEMENT
         ========================================================= */
 
+        const API_BASE = window.location.origin.startsWith('file://') ? 'http://localhost:3000' : '';
+        const API_URL = `${API_BASE}/api/posts`;
+
         let posts = [];
         let editingPostId = null;
         let activeTagFilter = null;
@@ -1182,24 +1185,27 @@
         });
 
         /* =========================================================
-           LOCAL STORAGE CORE
+           DATABASE CONNECTION CORE
         ========================================================= */
 
-        function loadPostsFromStorage() {
-            const data = localStorage.getItem("blog_posts");
-            if (data) {
-                try {
-                    posts = JSON.parse(data);
-                } catch(e) {
-                    posts = [];
-                }
-            } else {
-                posts = [];
+        async function loadPostsFromStorage() {
+            try {
+                const res = await fetch(API_URL);
+                if (!res.ok) throw new Error("Database fetch failed");
+                posts = await res.json();
+                renderPosts();
+            } catch (err) {
+                console.warn("Could not load posts from database. Falling back to local storage.", err);
+                showToast("Offline mode: loaded cached posts.", "info");
+                
+                const data = localStorage.getItem("blog_posts");
+                posts = data ? JSON.parse(data) : [];
+                renderPosts();
             }
-            renderPosts();
         }
 
         function savePostsToStorage() {
+            // Keep a local backup in case database is offline
             localStorage.setItem("blog_posts", JSON.stringify(posts));
         }
 
@@ -1777,7 +1783,7 @@
            SUBMIT BLOG / SAVE POSTS
         ========================================================= */
 
-        function submitBlog() {
+        async function submitBlog() {
             const title = document.getElementById("titleInput").value.trim();
             const main = document.getElementById("mainInput").value.trim();
             const sidebar = document.getElementById("sidebarInput").value.trim();
@@ -1790,42 +1796,55 @@
             }
 
             const tags = tagsInput ? tagsInput.split(",").map(t => t.trim()).filter(t => t) : [];
+            const publishBtn = document.getElementById("publishBtn");
+            const originalBtnText = publishBtn.innerHTML;
+            
+            publishBtn.disabled = true;
+            publishBtn.innerText = "Syncing...";
 
-            if (editingPostId !== null) {
-                // Edit mode
-                const index = posts.findIndex(p => p.id === editingPostId);
-                if (index !== -1) {
-                    posts[index].title = title;
-                    posts[index].main = main;
-                    posts[index].sidebar = sidebar;
-                    posts[index].footer = footer;
-                    posts[index].tags = tags;
-                    posts[index].editDate = new Date().toLocaleString();
-                    
+            try {
+                if (editingPostId !== null) {
+                    // Edit mode - PUT API
+                    const res = await fetch(`${API_URL}/${editingPostId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ title, main, sidebar, footer, tags })
+                    });
+                    if (!res.ok) throw new Error("Failed to update post on database");
+                    const updatedPost = await res.json();
+
+                    const index = posts.findIndex(p => p.id === editingPostId);
+                    if (index !== -1) {
+                        posts[index] = { ...posts[index], ...updatedPost };
+                    }
                     savePostsToStorage();
                     showToast("Post updated successfully!");
+                } else {
+                    // Create mode - POST API
+                    const dateStr = new Date().toLocaleString();
+                    const res = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ title, main, sidebar, footer, tags, date: dateStr })
+                    });
+                    if (!res.ok) throw new Error("Failed to save post to database");
+                    const savedPost = await res.json();
+
+                    posts.unshift(savedPost); // Add to the top
+                    savePostsToStorage();
+                    showToast("Post published successfully!");
                 }
-            } else {
-                // Create mode
-                const newPost = {
-                    id: 'post_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-                    title: title,
-                    main: main,
-                    sidebar: sidebar,
-                    footer: footer,
-                    tags: tags,
-                    date: new Date().toLocaleString(),
-                    editDate: null
-                };
 
-                posts.unshift(newPost); // Add to the top
-                savePostsToStorage();
-                showToast("Post published successfully!");
+                clearInputs();
+                closeEditor();
+                renderPosts();
+            } catch (err) {
+                console.error(err);
+                showToast("Could not sync with database server.", "error");
+            } finally {
+                publishBtn.disabled = false;
+                publishBtn.innerHTML = originalBtnText;
             }
-
-            clearInputs();
-            closeEditor();
-            renderPosts();
         }
 
         /* =========================================================
@@ -1976,13 +1995,31 @@
             modal.style.display = "flex";
 
             // Click listener for confirmed action
-            document.getElementById("confirmDeleteBtn").onclick = () => {
+            document.getElementById("confirmDeleteBtn").onclick = async () => {
                 if (postToDeleteId) {
-                    posts = posts.filter(p => p.id !== postToDeleteId);
-                    savePostsToStorage();
-                    closeDeleteModal();
-                    renderPosts();
-                    showToast("Post deleted successfully.");
+                    const confirmBtn = document.getElementById("confirmDeleteBtn");
+                    const originalText = confirmBtn.innerText;
+                    confirmBtn.disabled = true;
+                    confirmBtn.innerText = "Deleting...";
+
+                    try {
+                        const res = await fetch(`${API_URL}/${postToDeleteId}`, {
+                            method: 'DELETE'
+                        });
+                        if (!res.ok) throw new Error("Failed to delete post from database");
+
+                        posts = posts.filter(p => p.id !== postToDeleteId);
+                        savePostsToStorage();
+                        renderPosts();
+                        showToast("Post deleted successfully.");
+                    } catch (err) {
+                        console.error(err);
+                        showToast("Could not delete from database server.", "error");
+                    } finally {
+                        confirmBtn.disabled = false;
+                        confirmBtn.innerText = originalText;
+                        closeDeleteModal();
+                    }
                 }
             };
         }
