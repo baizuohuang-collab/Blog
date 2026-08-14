@@ -3,31 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A premium personal journal and blog featuring local storage, geocoding weather chart, tags, and Markdown parsing.">
+    <title>My Personal Journal</title>
 
-    <title>My Blog</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- CDNs for Lucide Icons & Marked (Markdown Parser) -->
+    <script src="https://cdn.jsdelivr.net/npm/lucide/dist/umd/lucide.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
     <style>
         /* =========================================================
-           GLOBAL
+           GLOBAL & VARIABLES (THEMES)
         ========================================================= */
 
         :root {
-            --bg: #f5f5f3;
+            /* Light Theme */
+            --bg: #f6f8fa;
             --surface: #ffffff;
-            --surface-soft: #f1f1ef;
-
-            --text: #181818;
-            --text-soft: #6d6d6d;
-
-            --border: #e2e2df;
+            --surface-soft: #f1f3f5;
+            --surface-card: #ffffff;
+            --text: #1a1b1e;
+            --text-soft: #6d7681;
+            --border: #e1e4e6;
             --accent: #111111;
+            --accent-soft: #f1f3f5;
+            --accent-text: #ffffff;
+            --radius: 16px;
+            --radius-inner: 10px;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+            --shadow-hover: 0 12px 30px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.03);
+            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
 
-            --radius: 18px;
-            --shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+        body.dark-mode {
+            /* Dark Theme */
+            --bg: #0b0f19;
+            --surface: #151b2c;
+            --surface-soft: #1e263d;
+            --surface-card: #151b2c;
+            --text: #f3f4f6;
+            --text-soft: #9ca3af;
+            --border: #252e48;
+            --accent: #3b82f6;
+            --accent-soft: rgba(59, 130, 246, 0.15);
+            --accent-text: #ffffff;
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+            --shadow-hover: 0 14px 40px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.25);
         }
 
         * {
             box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         html {
@@ -35,525 +66,768 @@
         }
 
         body {
-            margin: 0;
             min-height: 100vh;
-
-            overflow-y: scroll;
-
-            font-family:
-                Inter,
-                -apple-system,
-                BlinkMacSystemFont,
-                "Segoe UI",
-                Arial,
-                sans-serif;
-
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
             background: var(--bg);
             color: var(--text);
-
-            padding-bottom: 160px;
+            padding-bottom: 80px;
+            overflow-y: scroll;
+            transition: background var(--transition), color var(--transition);
         }
 
+        /* Utilities */
+        .page-container {
+            width: calc(100% - 32px);
+            max-width: 900px;
+            margin: 0 auto;
+        }
 
         /* =========================================================
-           HEADER
+           HEADER & NAVIGATION CONTROLS
         ========================================================= */
 
         .site-header {
-            padding: 70px 24px 25px;
+            padding: 50px 24px 20px;
             text-align: center;
+            position: relative;
+        }
+
+        .header-controls {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .theme-toggle-btn {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text);
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+
+        .theme-toggle-btn:hover {
+            transform: scale(1.05);
+            background: var(--surface-soft);
         }
 
         .site-label {
             display: inline-block;
-
-            margin-bottom: 15px;
-
-            font-size: 12px;
+            margin-bottom: 12px;
+            font-size: 11px;
             font-weight: 700;
-            letter-spacing: 2px;
-
+            letter-spacing: 2.5px;
             color: var(--text-soft);
-
             text-transform: uppercase;
         }
 
         h1 {
-            margin: 0;
-
-            font-size: clamp(42px, 7vw, 72px);
-            font-weight: 700;
-
-            letter-spacing: -3px;
-            line-height: 1;
-
+            font-family: 'Instrument Serif', Georgia, serif;
+            font-weight: 400;
+            font-style: italic;
+            font-size: clamp(48px, 8vw, 76px);
+            letter-spacing: -1.5px;
+            line-height: 0.95;
             color: var(--text);
+            margin-bottom: 10px;
         }
 
         .site-description {
-            max-width: 500px;
-
-            margin: 18px auto 0;
-
-            font-size: 16px;
-            line-height: 1.7;
-
+            max-width: 520px;
+            margin: 10px auto 0;
+            font-size: 15px;
+            line-height: 1.6;
             color: var(--text-soft);
         }
 
-
         /* =========================================================
-           MAIN WRAPPER
+           SEARCH BAR & FILTER CONTROLS
         ========================================================= */
 
-        .page-container {
-            width: calc(100% - 40px);
-            max-width: 900px;
-
-            margin: 0 auto;
+        .search-filter-row {
+            display: flex;
+            gap: 12px;
+            margin: 20px 0;
+            flex-wrap: wrap;
         }
 
+        .search-wrapper {
+            position: relative;
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-soft);
+            width: 18px;
+            height: 18px;
+            pointer-events: none;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 14px 12px 42px;
+            border-radius: var(--radius-inner);
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            font-size: 14px;
+            transition: var(--transition);
+            outline: none;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-soft);
+        }
 
         /* =========================================================
-           WEATHER
+           WEATHER SECTION
         ========================================================= */
 
         #weatherSection {
-            position: relative;
-
-            margin: 25px auto 20px;
-
-            padding: 24px;
-
             background: var(--surface);
-
             border: 1px solid var(--border);
             border-radius: var(--radius);
-
+            padding: 24px;
             box-shadow: var(--shadow);
-
-            overflow: hidden;
+            margin-bottom: 24px;
+            transition: var(--transition);
         }
 
-        .weather-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-
+        .weather-top {
+            display: grid;
+            grid-template-columns: 1fr auto;
             gap: 20px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
 
-            margin-bottom: 5px;
+        @media (max-width: 600px) {
+            .weather-top {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+        }
+
+        .weather-meta-info {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .weather-icon-box {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 52px;
+            height: 52px;
+            border-radius: var(--radius-inner);
+            background: var(--surface-soft);
+            color: var(--text);
+        }
+
+        .weather-icon-large {
+            width: 28px;
+            height: 28px;
+        }
+
+        .weather-title-container {
+            display: flex;
+            flex-direction: column;
         }
 
         .weather-title {
-            margin: 0;
-
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text);
+        }
 
-            letter-spacing: 0.5px;
+        .weather-title i {
+            width: 16px;
+            height: 16px;
+            color: var(--text-soft);
         }
 
         .weather-description {
-            margin: 5px 0 0;
-
             font-size: 13px;
             color: var(--text-soft);
+            margin-top: 4px;
+            line-height: 1.5;
         }
 
-        .weather-status {
-            display: flex;
-            align-items: center;
-
-            gap: 7px;
-
-            font-size: 12px;
+        .temp-range {
+            font-size: 11px;
             color: var(--text-soft);
+            margin-top: 2px;
+        }
 
-            white-space: nowrap;
+        .weather-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-soft);
+            background: var(--surface-soft);
+            padding: 6px 12px;
+            border-radius: 20px;
+            justify-self: end;
         }
 
         .status-dot {
-            width: 7px;
-            height: 7px;
-
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-
             background: #20b15a;
         }
 
-        canvas {
-            display: block;
-
-            width: 100%;
-            height: 200px;
-
-            margin-top: 20px;
-        }
-
-        #graphTime {
-            margin-top: 15px;
-
+        /* Weather Geocoding Input */
+        .weather-search-controls {
+            display: flex;
+            gap: 8px;
+            margin-top: 14px;
             padding-top: 14px;
-
             border-top: 1px solid var(--border);
-
-            font-size: 12px;
-            color: var(--text-soft);
         }
 
+        .weather-search-input {
+            flex: 1;
+            padding: 8px 12px;
+            font-size: 13px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-inner);
+            background: var(--surface-soft);
+            color: var(--text);
+            outline: none;
+            transition: var(--transition);
+        }
 
-        /* =========================================================
-           CREATE AREA
-        ========================================================= */
+        .weather-search-input:focus {
+            background: var(--surface);
+            border-color: var(--accent);
+        }
 
-        .create-row {
+        .btn-weather-search {
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: var(--radius-inner);
+            border: none;
+            background: var(--accent);
+            color: var(--accent-text);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: var(--transition);
+        }
+
+        .btn-weather-search:hover {
+            opacity: 0.9;
+        }
+
+        /* Canvas Chart container */
+        .weather-chart-container {
+            width: 100%;
+            height: 180px;
+            position: relative;
+            margin-top: 15px;
+        }
+
+        #weatherGraph {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        .chart-footer {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            font-size: 11px;
+            color: var(--text-soft);
+            margin-top: 10px;
+        }
 
-            margin: 32px 0 15px;
+        /* =========================================================
+           CREATE POST AREA BAR
+        ========================================================= */
+
+        .section-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 32px 0 16px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
         }
 
         .section-title {
-            margin: 0;
-
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 700;
-
-            letter-spacing: 1.5px;
-
+            letter-spacing: 2px;
             text-transform: uppercase;
             color: var(--text-soft);
         }
 
-
-        /* ADD BUTTON */
-
         #addBtn {
-            width: 48px;
-            height: 48px;
-
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: var(--accent-text);
             display: flex;
             align-items: center;
             justify-content: center;
-
-            padding-bottom: 4px;
-
-            border-radius: 50%;
-
-            background: var(--accent);
-            color: white;
-
-            font-size: 34px;
-            font-weight: 300;
-            line-height: 1;
-
             cursor: pointer;
-
-            transition:
-                transform 0.3s ease,
-                box-shadow 0.25s ease,
-                background 0.25s ease;
-
-            user-select: none;
-
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: var(--transition);
         }
 
         #addBtn:hover {
-            transform: rotate(90deg) scale(1.06);
-            box-shadow: 0 10px 26px rgba(0, 0, 0, 0.22);
+            transform: scale(1.08) rotate(90deg);
         }
 
         #addBtn.clicked {
-            transform: rotate(45deg);
+            transform: scale(1.08) rotate(45deg);
+            background: #ef4444;
         }
 
-
         /* =========================================================
-           EDITOR
+           POST EDITOR & LIVE PREVIEW
         ========================================================= */
 
         #editor {
             display: none;
-
-            margin: 0 auto 30px;
-            padding: 28px;
-
             background: var(--surface);
-
             border: 1px solid var(--border);
             border-radius: var(--radius);
-
+            padding: 28px;
             box-shadow: var(--shadow);
+            margin-bottom: 30px;
+            animation: slideDown 0.3s ease-out;
         }
 
-        #editor h3 {
-            margin: 0 0 22px;
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
-            font-size: 24px;
-            letter-spacing: -0.5px;
+        .editor-header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 22px;
+        }
+
+        .editor-header-bar h3 {
+            font-size: 22px;
+            font-family: 'Instrument Serif', Georgia, serif;
+            font-style: italic;
+        }
+
+        /* Editor Tabs */
+        .editor-tabs {
+            display: flex;
+            background: var(--surface-soft);
+            padding: 4px;
+            border-radius: 8px;
+            gap: 4px;
+        }
+
+        .editor-tab {
+            padding: 6px 14px;
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: 6px;
+            border: none;
+            background: transparent;
+            color: var(--text-soft);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .editor-tab.active {
+            background: var(--surface);
+            color: var(--text);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        /* Input grid styling */
+        .editor-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        @media (max-width: 600px) {
+            .editor-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         .input-group {
             margin-bottom: 16px;
         }
 
-        .input-label {
-            display: block;
-
-            margin-bottom: 7px;
-
-            font-size: 12px;
-            font-weight: 700;
-
-            color: var(--text-soft);
-
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
+        .input-group.full-width {
+            grid-column: 1 / -1;
         }
 
-        input,
-        textarea {
+        .input-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-soft);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 6px;
+        }
+
+        .input-helper {
+            text-transform: none;
+            font-weight: 400;
+            font-size: 10px;
+        }
+
+        input, textarea {
             width: 100%;
-
-            margin: 0;
-            padding: 13px 14px;
-
-            font: inherit;
-            font-size: 15px;
-
-            background: #fafafa;
+            padding: 12px 14px;
+            font-family: inherit;
+            font-size: 14px;
+            background: var(--surface-soft);
             color: var(--text);
-
             border: 1px solid var(--border);
-            border-radius: 10px;
-
+            border-radius: var(--radius-inner);
             outline: none;
-
+            transition: var(--transition);
             resize: vertical;
+        }
 
-            transition:
-                border-color 0.2s ease,
-                box-shadow 0.2s ease,
-                background 0.2s ease;
+        input:focus, textarea:focus {
+            background: var(--surface);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-soft);
         }
 
         textarea {
             min-height: 120px;
         }
 
-        input:focus,
-        textarea:focus {
-            background: white;
-
-            border-color: #999;
-
-            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+        .editor-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 20px;
+            padding-top: 18px;
+            border-top: 1px solid var(--border);
         }
 
-        button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-
-            margin-top: 5px;
-            padding: 12px 22px;
-
+        button.btn-primary {
             background: var(--accent);
-            color: white;
-
+            color: var(--accent-text);
             border: none;
-            border-radius: 10px;
-
-            cursor: pointer;
-
+            padding: 12px 22px;
+            border-radius: var(--radius-inner);
             font-size: 14px;
             font-weight: 600;
-
-            transition:
-                transform 0.2s ease,
-                background 0.2s ease,
-                box-shadow 0.2s ease;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition);
         }
 
-        button:hover {
-            background: #333;
-
+        button.btn-primary:hover {
+            opacity: 0.9;
             transform: translateY(-1px);
-
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.16);
         }
 
-        button:active {
-            transform: translateY(0);
+        button.btn-secondary {
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 12px 22px;
+            border-radius: var(--radius-inner);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
         }
 
+        button.btn-secondary:hover {
+            background: var(--surface-soft);
+        }
+
+        /* Editor Preview Area */
+        #editorPreview {
+            display: none;
+            border: 1px dashed var(--border);
+            padding: 24px;
+            border-radius: var(--radius-inner);
+            background: var(--bg);
+            margin-bottom: 16px;
+            min-height: 200px;
+        }
 
         /* =========================================================
-           BLOG
+           BLOG POST CARD & SIDEBAR GRID
         ========================================================= */
 
         #blogContainer {
-            width: 100%;
-
             display: flex;
             flex-direction: column;
-
-            gap: 22px;
+            gap: 24px;
         }
 
         .blog-post {
-            position: relative;
-
-            padding: 32px;
-
-            background: var(--surface);
-
+            background: var(--surface-card);
             border: 1px solid var(--border);
             border-radius: var(--radius);
-
+            padding: 32px;
             box-shadow: var(--shadow);
-
-            overflow: hidden;
-
-            transition:
-                transform 0.25s ease,
-                box-shadow 0.25s ease;
+            transition: var(--transition);
+            position: relative;
         }
 
         .blog-post:hover {
             transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
 
-            box-shadow: 0 14px 36px rgba(0, 0, 0, 0.08);
+        .post-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 20px;
+            margin-bottom: 18px;
         }
 
         .post-title {
-            margin: 0 0 28px;
-
-            text-align: left;
-
+            font-family: 'Instrument Serif', Georgia, serif;
+            font-size: clamp(28px, 5vw, 38px);
+            font-weight: 400;
+            line-height: 1.05;
             color: var(--text);
-
-            font-size: clamp(28px, 5vw, 40px);
-            font-weight: 700;
-
-            letter-spacing: -1.5px;
-            line-height: 1.1;
         }
 
+        .post-actions {
+            display: flex;
+            gap: 8px;
+        }
 
-        /* MAIN CONTENT + SIDEBAR */
+        .post-action-btn {
+            background: var(--surface-soft);
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-soft);
+            transition: var(--transition);
+        }
 
-        .post-content {
+        .post-action-btn:hover {
+            background: var(--accent-soft);
+            color: var(--accent);
+        }
+
+        .post-action-btn.btn-delete:hover {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+        }
+
+        .post-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .tag-pill {
+            background: var(--surface-soft);
+            color: var(--text-soft);
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: var(--transition);
+        }
+
+        .tag-pill:hover {
+            background: var(--accent-soft);
+            color: var(--accent);
+        }
+
+        .post-content-grid {
             display: grid;
-
-            grid-template-columns: 15fr 5fr;
-
+            grid-template-columns: 14fr 6fr;
             gap: 28px;
         }
 
-
-        /* MAIN CONTENT */
-
-        .main-content {
-            min-width: 0;
-            text-align: left;
+        @media (max-width: 700px) {
+            .post-content-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
         }
 
-        .main-content p {
-            margin: 0;
-
-            font-size: 17px;
-            line-height: 1.8;
-
-            color: #383838;
-
-            white-space: pre-wrap;
-            word-break: break-word;
+        .post-main-content {
+            min-width: 0;
+            line-height: 1.7;
+            font-size: 15px;
+            color: var(--text);
         }
 
-
-        /* SIDEBAR */
-
-        .sidebar {
-            min-width: 0;
-
-            padding: 18px;
-
+        /* Markdown Styling inside Posts */
+        .post-main-content h1, .post-main-content h2, .post-main-content h3 {
+            margin: 1.2em 0 0.6em;
+            font-family: inherit;
+            font-weight: 700;
+        }
+        .post-main-content h1 { font-size: 1.4em; }
+        .post-main-content h2 { font-size: 1.25em; }
+        .post-main-content h3 { font-size: 1.1em; }
+        .post-main-content p { margin-bottom: 1em; }
+        .post-main-content p:last-child { margin-bottom: 0; }
+        .post-main-content ul, .post-main-content ol { margin-bottom: 1em; padding-left: 20px; }
+        .post-main-content li { margin-bottom: 0.4em; }
+        .post-main-content blockquote {
+            border-left: 3px solid var(--accent);
+            padding-left: 12px;
+            color: var(--text-soft);
+            font-style: italic;
+            margin: 1em 0;
+        }
+        .post-main-content code {
+            font-family: monospace;
             background: var(--surface-soft);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        .post-main-content pre {
+            background: var(--surface-soft);
+            padding: 14px;
+            border-radius: var(--radius-inner);
+            overflow-x: auto;
+            margin-bottom: 1em;
+        }
+        .post-main-content pre code {
+            background: transparent;
+            padding: 0;
+            font-size: 0.85em;
+        }
 
-            border-radius: 12px;
-
-            text-align: left;
-
-            overflow: hidden;
-
-            font-size: 14px;
+        .post-sidebar {
+            background: var(--surface-soft);
+            border-radius: var(--radius-inner);
+            padding: 16px;
+            font-size: 13px;
+            color: var(--text-soft);
             line-height: 1.6;
-
-            color: #555;
-
-            box-sizing: border-box;
-            word-break: break-word;
+            height: fit-content;
         }
 
-        .sidebar img {
-            display: block;
-
+        .post-sidebar img {
             width: 100%;
-            max-width: 100%;
             height: auto;
-
-            margin: 12px auto;
-
-            border-radius: 9px;
-
+            border-radius: 8px;
+            margin-bottom: 12px;
             object-fit: cover;
-
-            box-sizing: border-box;
+            display: block;
         }
 
-        .sidebar img:first-child {
-            margin-top: 0;
+        .post-sidebar p {
+            word-wrap: break-word;
         }
 
-        .sidebar img:last-child {
-            margin-bottom: 0;
-        }
-
-        .sidebar img + img {
-            margin-top: 15px;
-        }
-
-
-        /* FOOTER */
-
-        .post-meta {
+        .post-footer {
             display: flex;
             justify-content: space-between;
             align-items: center;
-
             flex-wrap: wrap;
-
-            gap: 10px;
-
-            margin-top: 28px;
-            padding-top: 18px;
-
+            gap: 12px;
+            margin-top: 24px;
+            padding-top: 16px;
             border-top: 1px solid var(--border);
-        }
-
-        .footer {
-            margin: 0;
-
-            font-size: 12px;
-            line-height: 1.5;
-
+            font-size: 11px;
             color: var(--text-soft);
         }
 
+        .post-footer-left {
+            font-weight: 500;
+        }
+
+        .post-footer-right {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .post-footer-right i {
+            width: 12px;
+            height: 12px;
+        }
+
+        /* Active Filter Indicator Box */
+        .filter-status-box {
+            display: none;
+            background: var(--accent-soft);
+            border: 1px solid var(--accent);
+            border-radius: var(--radius-inner);
+            padding: 10px 16px;
+            font-size: 13px;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            color: var(--text);
+        }
+
+        .filter-status-box span {
+            font-weight: 600;
+        }
+
+        .btn-clear-filter {
+            background: transparent;
+            border: none;
+            color: var(--text);
+            cursor: pointer;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+        }
 
         /* =========================================================
            EMPTY STATE
@@ -561,644 +835,1187 @@
 
         #emptyState {
             padding: 60px 25px;
-
             text-align: center;
-
-            border: 1px dashed #c9c9c6;
+            border: 2px dashed var(--border);
             border-radius: var(--radius);
-
             color: var(--text-soft);
+            background: var(--surface);
+            transition: var(--transition);
         }
 
         .empty-icon {
+            font-size: 32px;
             margin-bottom: 12px;
-
-            font-size: 30px;
         }
 
         #emptyState p {
-            margin: 0;
-
             font-size: 14px;
             line-height: 1.6;
         }
 
-
         /* =========================================================
-           RESPONSIVE
+           MODAL DIALOG (CUSTOM CONFIRMATION)
         ========================================================= */
 
-        @media (max-width: 700px) {
-
-            .site-header {
-                padding-top: 50px;
-            }
-
-            .page-container {
-                width: calc(100% - 28px);
-            }
-
-            h1 {
-                letter-spacing: -2px;
-            }
-
-            #weatherSection {
-                padding: 20px;
-            }
-
-            .weather-header {
-                flex-direction: column;
-                gap: 10px;
-            }
-
-            canvas {
-                height: 170px;
-            }
-
-            #editor {
-                padding: 22px;
-            }
-
-            .blog-post {
-                padding: 24px;
-            }
-
-            .post-content {
-                grid-template-columns: 1fr;
-                gap: 20px;
-            }
-
-            .sidebar {
-                width: 100%;
-            }
-
-            .post-title {
-                margin-bottom: 22px;
-            }
-
-            .post-meta {
-                flex-direction: column;
-                align-items: flex-start;
-            }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(2px);
         }
 
+        .modal-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            max-width: 400px;
+            width: calc(100% - 32px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            animation: modalPop 0.25s ease-out;
+        }
+
+        @keyframes modalPop {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-card h4 {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .modal-card p {
+            font-size: 14px;
+            color: var(--text-soft);
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        /* =========================================================
+           TOAST NOTIFICATIONS
+        ========================================================= */
+
+        #toastContainer {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 1100;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+
+        .toast {
+            pointer-events: auto;
+            background: var(--surface);
+            border-left: 4px solid var(--accent);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            padding: 12px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 200px;
+            max-width: 350px;
+            color: var(--text);
+            animation: toastIn 0.3s ease-out forwards;
+            transition: var(--transition);
+        }
+
+        .toast.toast-error {
+            border-left-color: #ef4444;
+        }
+
+        @keyframes toastIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .toast.hide {
+            transform: translateY(-20px);
+            opacity: 0;
+        }
     </style>
 </head>
-
-
 <body>
 
     <!-- =========================================================
          HEADER
     ========================================================== -->
-
     <header class="site-header">
+        <div class="header-controls">
+            <!-- Theme Toggle Button -->
+            <button class="theme-toggle-btn" id="themeToggleBtn" aria-label="Toggle dark mode" title="Toggle dark mode">
+                <i data-lucide="moon" id="themeIcon"></i>
+            </button>
+        </div>
 
-        <span class="site-label">
-            Personal Journal
-        </span>
-
-        <h1>
-            My Blog
-        </h1>
-
-        <p class="site-description">
-            Thoughts, stories and moments from everyday life.
-        </p>
-
+        <span class="site-label">Personal Journal</span>
+        <h1>My Blog</h1>
+        <p class="site-description">Thoughts, stories, and moments from everyday life. Handcrafted with local persistence.</p>
     </header>
-
 
     <main class="page-container">
 
-
         <!-- =========================================================
-             WEATHER
+             WEATHER SECTION
         ========================================================== -->
-
         <section id="weatherSection">
-
-            <div class="weather-header">
-
-                <div>
-                    <p class="weather-title">
-                        Local Weather
-                    </p>
-
-                    <p class="weather-description">
-                        Temperature forecast for the next 24 hours
-                    </p>
+            <div class="weather-top">
+                <div class="weather-meta-info">
+                    <div class="weather-icon-box" id="weatherIconContainer">
+                        <i data-lucide="cloud-sun" class="weather-icon-large"></i>
+                    </div>
+                    <div class="weather-title-container">
+                        <p class="weather-title" id="weatherCityLabel">
+                            <i data-lucide="map-pin"></i> Taipei, Taiwan
+                        </p>
+                        <p class="weather-description" id="weatherConditionDesc">
+                            Loading current conditions...
+                        </p>
+                    </div>
                 </div>
 
-                <div class="weather-status">
+                <div class="weather-status-badge">
                     <span class="status-dot"></span>
-                    Live
+                    <span class="status-text">Live</span>
                 </div>
-
             </div>
 
-            <canvas id="weatherGraph"></canvas>
-
-            <div id="graphTime">
-                Loading time...
+            <!-- Enhanced Interactive Canvas Chart -->
+            <div class="weather-chart-container">
+                <canvas id="weatherGraph"></canvas>
             </div>
 
+            <div class="chart-footer">
+                <span id="graphTime">Loading times...</span>
+                <span>Hover chart for values</span>
+            </div>
+
+            <!-- Weather City Search -->
+            <div class="weather-search-controls">
+                <input type="text" id="weatherLocationInput" class="weather-search-input" placeholder="Search city (e.g. London, New York)...">
+                <button class="btn-weather-search" onclick="searchNewLocation()">
+                    <i data-lucide="search" style="width: 14px; height: 14px;"></i> Search
+                </button>
+            </div>
         </section>
 
-
         <!-- =========================================================
-             CREATE BLOG
+             SEARCH & FILTER & ADD CONTROLS
         ========================================================== -->
-
-        <div class="create-row">
-
-            <p class="section-title">
-                Latest Posts
-            </p>
-
-            <div
-                id="addBtn"
-                title="Create a new blog post"
-                aria-label="Create blog post"
-            >
-                +
+        <div class="search-filter-row">
+            <div class="search-wrapper">
+                <i data-lucide="search" class="search-icon"></i>
+                <input type="text" id="searchInput" class="search-input" placeholder="Search blog title, content, or tags...">
             </div>
-
         </div>
 
-
-        <!-- =========================================================
-             EDITOR
-        ========================================================== -->
-
-        <section id="editor">
-
-            <h3>
-                Create a Blog Post
-            </h3>
-
-
-            <div class="input-group">
-
-                <label class="input-label" for="titleInput">
-                    Title
-                </label>
-
-                <input
-                    id="titleInput"
-                    placeholder="Give your post a title"
-                >
-
-            </div>
-
-
-            <div class="input-group">
-
-                <label class="input-label" for="mainInput">
-                    Main Content
-                </label>
-
-                <textarea
-                    id="mainInput"
-                    placeholder="Write something..."
-                    rows="5"
-                ></textarea>
-
-            </div>
-
-
-            <div class="input-group">
-
-                <label class="input-label" for="sidebarInput">
-                    Sidebar
-                </label>
-
-                <textarea
-                    id="sidebarInput"
-                    placeholder="Sidebar content or image HTML..."
-                    rows="3"
-                ></textarea>
-
-            </div>
-
-
-            <div class="input-group">
-
-                <label class="input-label" for="footerInput">
-                    Footer
-                </label>
-
-                <input
-                    id="footerInput"
-                    placeholder="Footer text"
-                >
-
-            </div>
-
-
-            <button onclick="submitBlog()">
-                Publish Post
+        <div class="filter-status-box" id="filterStatusBox">
+            <p>Filtering by tag: <span id="activeFilterTag"></span></p>
+            <button class="btn-clear-filter" onclick="clearTagFilter()">
+                <i data-lucide="x" style="width:14px; height:14px;"></i> Clear filter
             </button>
-
-        </section>
-
-
-        <!-- =========================================================
-             BLOG POSTS
-        ========================================================== -->
-
-        <div id="blogContainer">
-
-            <div id="emptyState">
-
-                <div class="empty-icon">
-                    ✦
-                </div>
-
-                <p>
-                    No posts yet.<br>
-                    Click + to write your first story.
-                </p>
-
-            </div>
-
         </div>
 
+        <div class="section-header-row">
+            <p class="section-title">Latest Posts</p>
+            <div id="addBtn" title="Create a new blog post" aria-label="Create blog post">
+                <i data-lucide="plus" id="addBtnIcon"></i>
+            </div>
+        </div>
+
+        <!-- =========================================================
+             EDITOR SECTION
+        ========================================================== -->
+        <section id="editor">
+            <div class="editor-header-bar">
+                <h3 id="editorFormTitle">Create a Blog Post</h3>
+                <div class="editor-tabs">
+                    <button class="editor-tab active" id="writeTab" onclick="setEditorTab('write')">Write</button>
+                    <button class="editor-tab" id="previewTab" onclick="setEditorTab('preview')">Preview</button>
+                </div>
+            </div>
+
+            <!-- Write Container -->
+            <div id="editorWriteContainer">
+                <div class="editor-grid">
+                    <div class="input-group">
+                        <label class="input-label" for="titleInput">Title</label>
+                        <input id="titleInput" placeholder="Give your post a title" oninput="saveDraft()">
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label" for="tagsInput">
+                            Tags <span class="input-helper">(Comma separated)</span>
+                        </label>
+                        <input id="tagsInput" placeholder="e.g. lifestyle, travel, coding" oninput="saveDraft()">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label" for="mainInput">
+                        Main Content <span class="input-helper">(Supports Markdown)</span>
+                    </label>
+                    <textarea id="mainInput" placeholder="Write something spectacular... (Use markdown for formatting)" rows="6" oninput="saveDraft()"></textarea>
+                </div>
+
+                <div class="editor-grid">
+                    <div class="input-group">
+                        <label class="input-label" for="sidebarInput">
+                            Sidebar Content <span class="input-helper">(Supports Markdown / Image URL)</span>
+                        </label>
+                        <textarea id="sidebarInput" placeholder="Sidebar info or paste an image URL..." rows="3" oninput="saveDraft()"></textarea>
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label" for="footerInput">Footer Text</label>
+                        <input id="footerInput" placeholder="Add custom notes, credits, or location details..." oninput="saveDraft()">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Preview Container -->
+            <div id="editorPreview"></div>
+
+            <div class="editor-actions">
+                <button class="btn-secondary" onclick="closeEditor()">Cancel</button>
+                <button class="btn-primary" onclick="submitBlog()" id="publishBtn">
+                    <i data-lucide="check" style="width:16px; height:16px;"></i> <span id="publishBtnText">Publish Post</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- =========================================================
+             BLOG POSTS CONTAINER
+        ========================================================== -->
+        <div id="blogContainer">
+            <div id="emptyState">
+                <div class="empty-icon">✦</div>
+                <p>No posts yet.<br>Click the + button to write your first story.</p>
+            </div>
+        </div>
 
     </main>
 
+    <!-- Custom Delete Modal Dialog -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal-card">
+            <h4>Delete Post</h4>
+            <p>Are you sure you want to permanently delete this blog post? This action cannot be undone.</p>
+            <div class="modal-buttons">
+                <button class="btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+                <button class="btn-primary" style="background:#ef4444;" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer"></div>
 
     <script>
+        /* =========================================================
+           DATA & STATE MANAGEMENT
+        ========================================================= */
+
+        let posts = [];
+        let editingPostId = null;
+        let activeTagFilter = null;
+        let searchQuery = "";
+        let hourlyData = []; // Storage for weather forecast points
+        let activeTooltipIndex = -1; // Chart tooltip control
+
+        // WMO Code interpretation
+        const weatherCodes = {
+            0: { text: "Clear Sky", icon: "sun" },
+            1: { text: "Mainly Clear", icon: "cloud-sun" },
+            2: { text: "Partly Cloudy", icon: "cloud-sun" },
+            3: { text: "Overcast", icon: "cloud" },
+            45: { text: "Fog", icon: "cloud-fog" },
+            48: { text: "Depositing Rime Fog", icon: "cloud-fog" },
+            51: { text: "Light Drizzle", icon: "cloud-drizzle" },
+            53: { text: "Moderate Drizzle", icon: "cloud-drizzle" },
+            55: { text: "Dense Drizzle", icon: "cloud-drizzle" },
+            61: { text: "Slight Rain", icon: "cloud-rain" },
+            63: { text: "Moderate Rain", icon: "cloud-rain" },
+            65: { text: "Heavy Rain", icon: "cloud-rain" },
+            71: { text: "Slight Snow", icon: "snowflake" },
+            73: { text: "Moderate Snow", icon: "snowflake" },
+            75: { text: "Heavy Snow", icon: "snowflake" },
+            80: { text: "Slight Showers", icon: "cloud-rain" },
+            81: { text: "Moderate Showers", icon: "cloud-rain" },
+            82: { text: "Violent Showers", icon: "cloud-rain-wind" },
+            95: { text: "Thunderstorm", icon: "cloud-lightning" },
+            96: { text: "Thunderstorm with Hail", icon: "cloud-lightning" },
+            99: { text: "Thunderstorm with Heavy Hail", icon: "cloud-lightning" }
+        };
+
+        // Initialize App
+        window.addEventListener("DOMContentLoaded", () => {
+            initTheme();
+            loadPostsFromStorage();
+            initWeather();
+            setupSearch();
+            setupCanvasHover();
+
+            // Set up draft restore if exists
+            restoreDraft();
+            
+            // Render icons initially
+            lucide.createIcons();
+        });
 
         /* =========================================================
-           WEATHER GRAPH
-        ========================================================== */
+           LOCAL STORAGE CORE
+        ========================================================= */
 
-        function drawMainWeatherGraph() {
-
-            navigator.geolocation.getCurrentPosition(
-
-                pos => {
-
-                    const lat = pos.coords.latitude;
-                    const lon = pos.coords.longitude;
-
-
-                    fetch(
-                        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m`
-                    )
-
-                    .then(res => res.json())
-
-                    .then(data => {
-
-                        const temps =
-                            data.hourly.temperature_2m.slice(0, 24);
-
-
-                        const canvas =
-                            document.getElementById("weatherGraph");
-
-                        const ctx =
-                            canvas.getContext("2d");
-
-
-                        /*
-                           Higher resolution canvas
-                           keeps the graph sharp.
-                        */
-
-                        const width = 800;
-                        const height = 200;
-
-                        canvas.width = width;
-                        canvas.height = height;
-
-
-                        ctx.clearRect(
-                            0,
-                            0,
-                            width,
-                            height
-                        );
-
-
-                        /*
-                           Calculate min/max so the graph
-                           always fits inside the canvas.
-                        */
-
-                        const minTemp =
-                            Math.min(...temps);
-
-                        const maxTemp =
-                            Math.max(...temps);
-
-                        const range =
-                            maxTemp - minTemp || 1;
-
-
-                        const paddingTop = 25;
-                        const paddingBottom = 25;
-
-
-                        /* subtle horizontal guide lines */
-
-                        ctx.strokeStyle = "#ececea";
-                        ctx.lineWidth = 1;
-
-                        for (let i = 1; i <= 3; i++) {
-
-                            const y =
-                                (height / 4) * i;
-
-                            ctx.beginPath();
-
-                            ctx.moveTo(0, y);
-
-                            ctx.lineTo(width, y);
-
-                            ctx.stroke();
-                        }
-
-
-                        /* temperature graph */
-
-                        ctx.beginPath();
-
-                        ctx.strokeStyle = "#181818";
-                        ctx.lineWidth = 2.5;
-
-                        ctx.lineJoin = "round";
-                        ctx.lineCap = "round";
-
-
-                        temps.forEach((t, i) => {
-
-                            const x =
-                                (i / (temps.length - 1))
-                                * width;
-
-                            const normalized =
-                                (t - minTemp) / range;
-
-                            const y =
-                                height
-                                - paddingBottom
-                                - normalized
-                                * (
-                                    height
-                                    - paddingTop
-                                    - paddingBottom
-                                );
-
-
-                            if (i === 0) {
-
-                                ctx.moveTo(x, y);
-
-                            } else {
-
-                                ctx.lineTo(x, y);
-
-                            }
-
-                        });
-
-
-                        ctx.stroke();
-
-
-                        document.getElementById(
-                            "graphTime"
-                        ).innerText =
-                            "Updated " +
-                            new Date().toLocaleString();
-
-                    });
-
-                },
-
-                () => {
-
-                    document.getElementById(
-                        "graphTime"
-                    ).innerText =
-                        "Location permission is required to display local weather.";
-
+        function loadPostsFromStorage() {
+            const data = localStorage.getItem("blog_posts");
+            if (data) {
+                try {
+                    posts = JSON.parse(data);
+                } catch(e) {
+                    posts = [];
                 }
-
-            );
-
+            } else {
+                posts = [];
+            }
+            renderPosts();
         }
 
-
-        drawMainWeatherGraph();
-
-
-
-        /* =========================================================
-           EDITOR TOGGLE
-        ========================================================== */
-
-        document
-            .getElementById("addBtn")
-            .addEventListener(
-                "click",
-                function () {
-
-                    this.classList.toggle("clicked");
-
-
-                    const editor =
-                        document.getElementById(
-                            "editor"
-                        );
-
-
-                    if (
-                        editor.style.display ===
-                        "block"
-                    ) {
-
-                        editor.style.display =
-                            "none";
-
-                    }
-
-                    else {
-
-                        document.getElementById(
-                            "titleInput"
-                        ).value = "";
-
-                        document.getElementById(
-                            "mainInput"
-                        ).value = "";
-
-                        document.getElementById(
-                            "sidebarInput"
-                        ).value = "";
-
-                        document.getElementById(
-                            "footerInput"
-                        ).value = "";
-
-
-                        editor.style.display =
-                            "block";
-
-
-                        /*
-                           Automatically scroll editor
-                           into view.
-                        */
-
-                        editor.scrollIntoView({
-                            behavior: "smooth",
-                            block: "nearest"
-                        });
-
-                    }
-
-                }
-            );
-
-
-
-        /* =========================================================
-           SUBMIT BLOG
-        ========================================================== */
-
-        function submitBlog() {
-
-            const title =
-                document.getElementById(
-                    "titleInput"
-                ).value;
-
-            const main =
-                document.getElementById(
-                    "mainInput"
-                ).value;
-
-            const sidebar =
-                document.getElementById(
-                    "sidebarInput"
-                ).value;
-
-            const footer =
-                document.getElementById(
-                    "footerInput"
-                ).value;
-
-
-            createBlog(
-                title,
-                main,
-                sidebar,
-                footer
-            );
-
-
-            document.getElementById(
-                "editor"
-            ).style.display =
-                "none";
-
-
-            document.getElementById(
-                "addBtn"
-            ).classList.remove(
-                "clicked"
-            );
-
+        function savePostsToStorage() {
+            localStorage.setItem("blog_posts", JSON.stringify(posts));
         }
 
-
-
         /* =========================================================
-           CREATE BLOG
-        ========================================================== */
+           THEME SWITCHER
+        ========================================================= */
 
-        function createBlog(
-            title,
-            main,
-            sidebar,
-            footer
-        ) {
-
-            const container =
-                document.getElementById(
-                    "blogContainer"
-                );
-
-
-            /*
-               Remove empty state after
-               first post is created.
-            */
-
-            const emptyState =
-                document.getElementById(
-                    "emptyState"
-                );
-
-            if (emptyState) {
-                emptyState.remove();
+        function initTheme() {
+            const savedTheme = localStorage.getItem("blog_theme");
+            const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+            
+            if (savedTheme === "dark" || (!savedTheme && prefersDark)) {
+                document.body.classList.add("dark-mode");
+                updateThemeButton(true);
+            } else {
+                document.body.classList.remove("dark-mode");
+                updateThemeButton(false);
             }
 
+            document.getElementById("themeToggleBtn").addEventListener("click", () => {
+                const isDark = document.body.classList.toggle("dark-mode");
+                localStorage.setItem("blog_theme", isDark ? "dark" : "light");
+                updateThemeButton(isDark);
+                // Redraw weather chart to match new theme colors
+                if (hourlyData.length > 0) {
+                    drawWeatherChart(hourlyData.map(d => d.temp), hourlyData.map(d => d.time));
+                }
+            });
+        }
 
-            const post =
-                document.createElement("article");
+        function updateThemeButton(isDark) {
+            const icon = document.getElementById("themeIcon");
+            if (isDark) {
+                icon.setAttribute("data-lucide", "sun");
+                document.getElementById("themeToggleBtn").title = "Switch to light mode";
+            } else {
+                icon.setAttribute("data-lucide", "moon");
+                document.getElementById("themeToggleBtn").title = "Switch to dark mode";
+            }
+            lucide.createIcons();
+        }
 
+        /* =========================================================
+           TOAST NOTIFICATIONS
+        ========================================================= */
 
-            post.className =
-                "blog-post";
-
-
-            const date =
-                new Date().toLocaleString();
-
-
-            post.innerHTML = `
-
-                <h2 class="post-title">
-                    ${title}
-                </h2>
-
-                <div class="post-content">
-
-                    <div class="main-content">
-                        <p>${main}</p>
-                    </div>
-
-                    <aside class="sidebar">
-                        ${sidebar}
-                    </aside>
-
-                </div>
-
-                <div class="post-meta">
-
-                    <div class="footer">
-                        ${footer}
-                    </div>
-
-                    <div class="footer">
-                        Posted on: ${date}
-                    </div>
-
-                </div>
-
+        function showToast(message, type = "success") {
+            const container = document.getElementById("toastContainer");
+            const toast = document.createElement("div");
+            toast.className = `toast ${type === "error" ? "toast-error" : ""}`;
+            
+            const iconName = type === "error" ? "alert-circle" : "check-circle";
+            
+            toast.innerHTML = `
+                <i data-lucide="${iconName}" style="width: 16px; height: 16px;"></i>
+                <span>${message}</span>
             `;
+            
+            container.appendChild(toast);
+            lucide.createIcons();
+            
+            setTimeout(() => {
+                toast.classList.add("hide");
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
 
+        /* =========================================================
+           WEATHER FEATURE WITH GEOLOCATION & GEOCIDING
+        ========================================================= */
 
-            container.appendChild(post);
+        function initWeather() {
+            const savedLoc = localStorage.getItem("blog_weather_location");
+            if (savedLoc) {
+                const loc = JSON.parse(savedLoc);
+                fetchWeatherForecast(loc.lat, loc.lon, loc.name);
+            } else {
+                // Default coordinates (Taipei, Taiwan)
+                const defaultLoc = { name: "Taipei, Taiwan", lat: 25.0330, lon: 121.5654 };
+                
+                if (navigator.geolocation) {
+                    const statusDot = document.querySelector(".status-dot");
+                    const statusText = document.querySelector(".status-text");
+                    if (statusText) statusText.innerText = "Locating...";
+                    
+                    navigator.geolocation.getCurrentPosition(
+                        pos => {
+                            const lat = pos.coords.latitude;
+                            const lon = pos.coords.longitude;
+                            const label = "Current Location";
+                            
+                            const locObj = { name: label, lat: lat, lon: lon };
+                            localStorage.setItem("blog_weather_location", JSON.stringify(locObj));
+                            fetchWeatherForecast(lat, lon, label);
+                        },
+                        err => {
+                            console.warn("Geolocation prompt error: using default Taipei.");
+                            localStorage.setItem("blog_weather_location", JSON.stringify(defaultLoc));
+                            fetchWeatherForecast(defaultLoc.lat, defaultLoc.lon, defaultLoc.name);
+                        },
+                        { timeout: 5000 }
+                    );
+                } else {
+                    localStorage.setItem("blog_weather_location", JSON.stringify(defaultLoc));
+                    fetchWeatherForecast(defaultLoc.lat, defaultLoc.lon, defaultLoc.name);
+                }
+            }
+        }
 
+        function fetchWeatherForecast(lat, lon, label) {
+            const statusDot = document.querySelector(".status-dot");
+            const statusText = document.querySelector(".status-text");
+            
+            if (statusDot) statusDot.style.background = "#f59e0b"; // Orange loading
+            if (statusText) statusText.innerText = "Syncing...";
+
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,weathercode&current_weather=true&timezone=auto`;
+            
+            fetch(url)
+                .then(res => {
+                    if (!res.ok) throw new Error("API Connection Error");
+                    return res.json();
+                })
+                .then(data => {
+                    const current = data.current_weather;
+                    const code = current.weathercode;
+                    const currentTemp = current.temperature;
+                    const info = weatherCodes[code] || { text: "Unspecified", icon: "cloud" };
+
+                    // Update UI Labels
+                    document.getElementById("weatherCityLabel").innerHTML = `<i data-lucide="map-pin"></i> ${label}`;
+                    
+                    const slice24h = data.hourly.temperature_2m.slice(0, 24);
+                    const maxTemp = Math.max(...slice24h);
+                    const minTemp = Math.min(...slice24h);
+                    
+                    document.getElementById("weatherConditionDesc").innerHTML = `
+                        <strong>${currentTemp}°C</strong> · ${info.text} <br>
+                        <span class="temp-range">High: ${maxTemp}°C / Low: ${minTemp}°C</span>
+                    `;
+
+                    document.getElementById("weatherIconContainer").innerHTML = `
+                        <i data-lucide="${info.icon}" class="weather-icon-large"></i>
+                    `;
+
+                    // Store global hourly data
+                    hourlyData = slice24h.map((t, idx) => ({
+                        temp: t,
+                        time: data.hourly.time[idx]
+                    }));
+
+                    activeTooltipIndex = -1;
+                    drawWeatherChart(slice24h, data.hourly.time.slice(0, 24));
+
+                    if (statusDot) statusDot.style.background = "#20b15a"; // Live green
+                    if (statusText) statusText.innerText = "Live";
+                    document.getElementById("graphTime").innerText = `Refreshed: ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                    lucide.createIcons();
+                })
+                .catch(err => {
+                    console.error(err);
+                    if (statusDot) statusDot.style.background = "#ef4444"; // Red error
+                    if (statusText) statusText.innerText = "Sync Error";
+                    showToast("Failed to fetch weather forecast", "error");
+                });
+        }
+
+        function searchNewLocation() {
+            const query = document.getElementById("weatherLocationInput").value.trim();
+            if (!query) return;
+
+            const searchBtn = document.querySelector(".btn-weather-search");
+            const originalHTML = searchBtn.innerHTML;
+            searchBtn.disabled = true;
+            searchBtn.innerText = "Searching...";
+
+            fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=en`)
+                .then(res => res.json())
+                .then(data => {
+                    searchBtn.disabled = false;
+                    searchBtn.innerHTML = originalHTML;
+
+                    if (data.results && data.results.length > 0) {
+                        const result = data.results[0];
+                        const name = `${result.name}, ${result.country}`;
+                        const lat = result.latitude;
+                        const lon = result.longitude;
+
+                        const locObj = { name, lat, lon };
+                        localStorage.setItem("blog_weather_location", JSON.stringify(locObj));
+                        
+                        document.getElementById("weatherLocationInput").value = "";
+                        fetchWeatherForecast(lat, lon, name);
+                        showToast(`Showing weather for ${name}`);
+                    } else {
+                        showToast("City not found. Try a different city name.", "error");
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    searchBtn.disabled = false;
+                    searchBtn.innerHTML = originalHTML;
+                    showToast("Search failed. Connect to internet and try again.", "error");
+                });
+        }
+
+        // Setup press Enter for search
+        document.getElementById("weatherLocationInput").addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+                searchNewLocation();
+            }
+        });
+
+        /* =========================================================
+           WEATHER CHART DRAWING (HTML5 CANVAS)
+        ========================================================= */
+
+        function drawWeatherChart(temps, times) {
+            const canvas = document.getElementById("weatherGraph");
+            if (!canvas) return;
+            const ctx = canvas.getContext("2d");
+
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+
+            const width = rect.width;
+            const height = rect.height;
+            ctx.clearRect(0, 0, width, height);
+
+            if (!temps || temps.length === 0) return;
+
+            const minTemp = Math.min(...temps);
+            const maxTemp = Math.max(...temps);
+            const range = maxTemp - minTemp || 1;
+
+            const paddingTop = 25;
+            const paddingBottom = 30;
+            const paddingLeft = 32;
+            const paddingRight = 16;
+
+            const chartWidth = width - paddingLeft - paddingRight;
+            const chartHeight = height - paddingTop - paddingBottom;
+
+            const isDark = document.body.classList.contains("dark-mode");
+            const gridColor = isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.04)";
+            const textColor = isDark ? "#8e9aaf" : "#6c757d";
+            const accentColor = isDark ? "#3b82f6" : "#111111";
+
+            // Grid lines (y axis labels)
+            ctx.strokeStyle = gridColor;
+            ctx.lineWidth = 1;
+            ctx.fillStyle = textColor;
+            ctx.font = "10px Inter, sans-serif";
+            ctx.textAlign = "right";
+            ctx.textBaseline = "middle";
+
+            const lines = 4;
+            for (let i = 0; i <= lines; i++) {
+                const ratio = i / lines;
+                const tempVal = maxTemp - ratio * range;
+                const y = paddingTop + ratio * chartHeight;
+
+                ctx.beginPath();
+                ctx.moveTo(paddingLeft, y);
+                ctx.lineTo(width - paddingRight, y);
+                ctx.stroke();
+
+                ctx.fillText(`${tempVal.toFixed(1)}°`, paddingLeft - 8, y);
+            }
+
+            // Map data coordinates
+            const points = temps.map((t, idx) => {
+                const x = paddingLeft + (idx / (temps.length - 1)) * chartWidth;
+                const norm = (t - minTemp) / range;
+                const y = paddingTop + chartHeight - norm * chartHeight;
+                return { x, y, temp: t, time: times[idx] };
+            });
+
+            // Fill area under line (gradient)
+            const areaGrad = ctx.createLinearGradient(0, paddingTop, 0, paddingTop + chartHeight);
+            if (isDark) {
+                areaGrad.addColorStop(0, "rgba(59, 130, 246, 0.18)");
+                areaGrad.addColorStop(1, "rgba(59, 130, 246, 0.0)");
+            } else {
+                areaGrad.addColorStop(0, "rgba(17, 17, 17, 0.08)");
+                areaGrad.addColorStop(1, "rgba(17, 17, 17, 0.0)");
+            }
+
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, paddingTop + chartHeight);
+            points.forEach(p => ctx.lineTo(p.x, p.y));
+            ctx.lineTo(points[points.length - 1].x, paddingTop + chartHeight);
+            ctx.closePath();
+            ctx.fillStyle = areaGrad;
+            ctx.fill();
+
+            // Draw line
+            ctx.beginPath();
+            ctx.strokeStyle = accentColor;
+            ctx.lineWidth = 2.5;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            points.forEach((p, idx) => {
+                if (idx === 0) ctx.moveTo(p.x, p.y);
+                else ctx.lineTo(p.x, p.y);
+            });
+            ctx.stroke();
+
+            // Draw X-axis labels
+            ctx.textAlign = "center";
+            ctx.textBaseline = "top";
+            points.forEach((p, idx) => {
+                if (idx % 4 === 0 || idx === points.length - 1) {
+                    const timeStr = new Date(p.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                    ctx.fillText(timeStr, p.x, paddingTop + chartHeight + 8);
+
+                    ctx.beginPath();
+                    ctx.moveTo(p.x, paddingTop + chartHeight);
+                    ctx.lineTo(p.x, paddingTop + chartHeight + 4);
+                    ctx.stroke();
+                }
+            });
+
+            // Hover tooltip marker
+            if (activeTooltipIndex >= 0 && activeTooltipIndex < points.length) {
+                const p = points[activeTooltipIndex];
+                
+                // Draw dotted line indicator
+                ctx.beginPath();
+                ctx.strokeStyle = isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.1)";
+                ctx.lineWidth = 1;
+                ctx.setLineDash([3, 3]);
+                ctx.moveTo(p.x, paddingTop);
+                ctx.lineTo(p.x, paddingTop + chartHeight);
+                ctx.stroke();
+                ctx.setLineDash([]); // reset
+
+                // Draw focal dot
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+                ctx.fillStyle = accentColor;
+                ctx.strokeStyle = isDark ? "#151b2c" : "#ffffff";
+                ctx.lineWidth = 2;
+                ctx.fill();
+                ctx.stroke();
+
+                // Draw floating tooltip
+                const timeStr = new Date(p.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                const bubbleText = `${timeStr}: ${p.temp.toFixed(1)}°C`;
+                const labelWidth = ctx.measureText(bubbleText).width;
+
+                const textPadding = 8;
+                const bubbleW = labelWidth + textPadding * 2;
+                const bubbleH = 22;
+                
+                let bubbleX = p.x - bubbleW / 2;
+                let bubbleY = p.y - bubbleH - 8;
+
+                // Restrict inside graph bounding limits
+                if (bubbleX < paddingLeft) bubbleX = paddingLeft;
+                if (bubbleX + bubbleW > width - paddingRight) bubbleX = width - paddingRight - bubbleW;
+                if (bubbleY < 5) bubbleY = p.y + 8; // flip below if reaches boundary
+
+                ctx.fillStyle = isDark ? "#1e263d" : "#111111";
+                ctx.beginPath();
+                ctx.roundRect(bubbleX, bubbleY, bubbleW, bubbleH, 4);
+                ctx.fill();
+
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "500 10px Inter, sans-serif";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(bubbleText, bubbleX + bubbleW / 2, bubbleY + bubbleH / 2);
+            }
+        }
+
+        function setupCanvasHover() {
+            const canvas = document.getElementById("weatherGraph");
+            
+            canvas.addEventListener("mousemove", (e) => {
+                if (!hourlyData || hourlyData.length === 0) return;
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                
+                const paddingLeft = 32;
+                const paddingRight = 16;
+                const chartWidth = rect.width - paddingLeft - paddingRight;
+
+                if (x < paddingLeft || x > rect.width - paddingRight) {
+                    activeTooltipIndex = -1;
+                    drawWeatherChart(hourlyData.map(d => d.temp), hourlyData.map(d => d.time));
+                    return;
+                }
+
+                const relativeX = x - paddingLeft;
+                const pct = relativeX / chartWidth;
+                let index = Math.round(pct * (hourlyData.length - 1));
+                index = Math.max(0, Math.min(hourlyData.length - 1, index));
+
+                if (index !== activeTooltipIndex) {
+                    activeTooltipIndex = index;
+                    drawWeatherChart(hourlyData.map(d => d.temp), hourlyData.map(d => d.time));
+                }
+            });
+
+            canvas.addEventListener("mouseleave", () => {
+                activeTooltipIndex = -1;
+                if (hourlyData.length > 0) {
+                    drawWeatherChart(hourlyData.map(d => d.temp), hourlyData.map(d => d.time));
+                }
+            });
+
+            // Adjust graph sharp dimensions when window shifts
+            window.addEventListener("resize", () => {
+                if (hourlyData.length > 0) {
+                    drawWeatherChart(hourlyData.map(d => d.temp), hourlyData.map(d => d.time));
+                }
+            });
+        }
+
+        /* =========================================================
+           BLOG POST WRITING / EDITOR / AUTO-SAVE DRAFT
+        ========================================================= */
+
+        const addBtn = document.getElementById("addBtn");
+        const editor = document.getElementById("editor");
+
+        addBtn.addEventListener("click", () => {
+            if (editor.style.display === "block") {
+                closeEditor();
+            } else {
+                openEditorForCreate();
+            }
+        });
+
+        function openEditorForCreate() {
+            editingPostId = null;
+            document.getElementById("editorFormTitle").innerText = "Create a Blog Post";
+            document.getElementById("publishBtnText").innerText = "Publish Post";
+            
+            // Clear inputs if no draft is present
+            if (!localStorage.getItem("blog_editor_draft")) {
+                clearInputs();
+            }
+
+            editor.style.display = "block";
+            addBtn.classList.add("clicked");
+            
+            editor.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            setEditorTab("write");
+        }
+
+        function closeEditor() {
+            editor.style.display = "none";
+            addBtn.classList.remove("clicked");
+            editingPostId = null;
+            // Clear preview element
+            document.getElementById("editorPreview").innerHTML = "";
+        }
+
+        function clearInputs() {
+            document.getElementById("titleInput").value = "";
+            document.getElementById("tagsInput").value = "";
+            document.getElementById("mainInput").value = "";
+            document.getElementById("sidebarInput").value = "";
+            document.getElementById("footerInput").value = "";
+            // Clear draft storage
+            localStorage.removeItem("blog_editor_draft");
+        }
+
+        // Tab switches (Write vs Preview)
+        function setEditorTab(tab) {
+            const writeBtn = document.getElementById("writeTab");
+            const previewBtn = document.getElementById("previewTab");
+            const writeContainer = document.getElementById("editorWriteContainer");
+            const previewContainer = document.getElementById("editorPreview");
+
+            if (tab === "write") {
+                writeBtn.classList.add("active");
+                previewBtn.classList.remove("active");
+                writeContainer.style.display = "block";
+                previewContainer.style.display = "none";
+            } else {
+                writeBtn.classList.remove("active");
+                previewBtn.classList.add("active");
+                writeContainer.style.display = "none";
+                previewContainer.style.display = "block";
+
+                // Render active values as a simulated post card
+                const title = document.getElementById("titleInput").value || "Untitled Post";
+                const tagsRaw = document.getElementById("tagsInput").value;
+                const main = document.getElementById("mainInput").value || "*No content entered yet.*";
+                const sidebar = document.getElementById("sidebarInput").value;
+                const footer = document.getElementById("footerInput").value || "Footer description";
+                const date = new Date().toLocaleString();
+
+                const tags = tagsRaw ? tagsRaw.split(",").map(t => t.trim()).filter(t => t) : [];
+
+                // Simple image link detection helper for sidebar preview
+                let sidebarHTML = "";
+                if (sidebar) {
+                    if (sidebar.match(/\.(jpeg|jpg|gif|png|webp)/i) || sidebar.startsWith("http")) {
+                        sidebarHTML = `<img src="${sidebar}" alt="Sidebar image placeholder"><p>Image Caption</p>`;
+                    } else {
+                        sidebarHTML = marked.parse(sidebar);
+                    }
+                }
+
+                previewContainer.innerHTML = `
+                    <div class="blog-post" style="padding: 0; border: none; box-shadow: none; background: transparent;">
+                        <h2 class="post-title">${title}</h2>
+                        <div class="post-tags" style="margin-top: 8px;">
+                            ${tags.map(t => `<span class="tag-pill">#${t}</span>`).join("")}
+                        </div>
+                        <div class="post-content-grid">
+                            <div class="post-main-content">
+                                ${marked.parse(main)}
+                            </div>
+                            <aside class="post-sidebar">
+                                ${sidebarHTML || "*Sidebar empty.*"}
+                            </aside>
+                        </div>
+                        <div class="post-footer">
+                            <div class="post-footer-left">${footer}</div>
+                            <div class="post-footer-right">
+                                <i data-lucide="calendar"></i>
+                                <span>Preview Draft (${date})</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                lucide.createIcons();
+            }
+        }
+
+        // Editor Auto-save Draft
+        function saveDraft() {
+            // Only auto-save if we are creating a new post (not editing an existing one)
+            if (editingPostId !== null) return;
+
+            const draft = {
+                title: document.getElementById("titleInput").value,
+                tags: document.getElementById("tagsInput").value,
+                main: document.getElementById("mainInput").value,
+                sidebar: document.getElementById("sidebarInput").value,
+                footer: document.getElementById("footerInput").value
+            };
+            localStorage.setItem("blog_editor_draft", JSON.stringify(draft));
+        }
+
+        function restoreDraft() {
+            const data = localStorage.getItem("blog_editor_draft");
+            if (data) {
+                try {
+                    const draft = JSON.parse(data);
+                    // Check if draft has any text before populating to prevent empty restoration alerts
+                    if (draft.title || draft.main || draft.sidebar || draft.tags || draft.footer) {
+                        document.getElementById("titleInput").value = draft.title || "";
+                        document.getElementById("tagsInput").value = draft.tags || "";
+                        document.getElementById("mainInput").value = draft.main || "";
+                        document.getElementById("sidebarInput").value = draft.sidebar || "";
+                        document.getElementById("footerInput").value = draft.footer || "";
+                        showToast("Restored your unsaved draft.", "info");
+                    }
+                } catch(e) {
+                    localStorage.removeItem("blog_editor_draft");
+                }
+            }
+        }
+
+        /* =========================================================
+           SUBMIT BLOG / SAVE POSTS
+        ========================================================= */
+
+        function submitBlog() {
+            const title = document.getElementById("titleInput").value.trim();
+            const main = document.getElementById("mainInput").value.trim();
+            const sidebar = document.getElementById("sidebarInput").value.trim();
+            const footer = document.getElementById("footerInput").value.trim();
+            const tagsInput = document.getElementById("tagsInput").value.trim();
+
+            if (!title || !main) {
+                showToast("Title and Main Content are required.", "error");
+                return;
+            }
+
+            const tags = tagsInput ? tagsInput.split(",").map(t => t.trim()).filter(t => t) : [];
+
+            if (editingPostId !== null) {
+                // Edit mode
+                const index = posts.findIndex(p => p.id === editingPostId);
+                if (index !== -1) {
+                    posts[index].title = title;
+                    posts[index].main = main;
+                    posts[index].sidebar = sidebar;
+                    posts[index].footer = footer;
+                    posts[index].tags = tags;
+                    posts[index].editDate = new Date().toLocaleString();
+                    
+                    savePostsToStorage();
+                    showToast("Post updated successfully!");
+                }
+            } else {
+                // Create mode
+                const newPost = {
+                    id: 'post_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                    title: title,
+                    main: main,
+                    sidebar: sidebar,
+                    footer: footer,
+                    tags: tags,
+                    date: new Date().toLocaleString(),
+                    editDate: null
+                };
+
+                posts.unshift(newPost); // Add to the top
+                savePostsToStorage();
+                showToast("Post published successfully!");
+            }
+
+            clearInputs();
+            closeEditor();
+            renderPosts();
+        }
+
+        /* =========================================================
+           RENDER BLOG POSTS
+        ========================================================= */
+
+        function renderPosts() {
+            const container = document.getElementById("blogContainer");
+            
+            // Filter posts
+            let filteredPosts = posts;
+
+            // Apply Tag Filter
+            if (activeTagFilter) {
+                filteredPosts = filteredPosts.filter(p => p.tags.includes(activeTagFilter));
+                document.getElementById("filterStatusBox").style.display = "flex";
+                document.getElementById("activeFilterTag").innerText = `#${activeTagFilter}`;
+            } else {
+                document.getElementById("filterStatusBox").style.display = "none";
+            }
+
+            // Apply Search Query
+            if (searchQuery) {
+                const query = searchQuery.toLowerCase();
+                filteredPosts = filteredPosts.filter(p => 
+                    p.title.toLowerCase().includes(query) ||
+                    p.main.toLowerCase().includes(query) ||
+                    p.sidebar.toLowerCase().includes(query) ||
+                    p.footer.toLowerCase().includes(query) ||
+                    p.tags.some(t => t.toLowerCase().includes(query))
+                );
+            }
+
+            // Empty state check
+            if (filteredPosts.length === 0) {
+                container.innerHTML = `
+                    <div id="emptyState">
+                        <div class="empty-icon">✦</div>
+                        <p>${posts.length === 0 ? "No posts yet. Click the + button to write your first story." : "No posts match your search or filter criteria."}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = "";
+
+            filteredPosts.forEach(post => {
+                const postElement = document.createElement("article");
+                postElement.className = "blog-post";
+                postElement.id = post.id;
+
+                // Handle sidebar content: Check if image extension or URL to render automatically
+                let sidebarContent = "";
+                if (post.sidebar) {
+                    if (post.sidebar.match(/\.(jpeg|jpg|gif|png|webp)/i) || post.sidebar.startsWith("http")) {
+                        sidebarContent = `<img src="${post.sidebar}" alt="User uploaded sidebar content"><p>Image Attachment</p>`;
+                    } else {
+                        sidebarContent = marked.parse(post.sidebar);
+                    }
+                } else {
+                    sidebarContent = `<p style="font-style:italic; opacity: 0.6;">No additional details.</p>`;
+                }
+
+                const postDateString = post.editDate 
+                    ? `Posted: ${post.date} (Edited: ${post.editDate})`
+                    : `Posted: ${post.date}`;
+
+                postElement.innerHTML = `
+                    <div class="post-header">
+                        <h2 class="post-title">${post.title}</h2>
+                        <div class="post-actions">
+                            <button class="post-action-btn" onclick="editPost('${post.id}')" title="Edit post" aria-label="Edit post">
+                                <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i>
+                            </button>
+                            <button class="post-action-btn btn-delete" onclick="triggerDeletePost('${post.id}')" title="Delete post" aria-label="Delete post">
+                                <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="post-tags">
+                        ${post.tags.map(tag => `
+                            <span class="tag-pill" onclick="filterByTag('${tag}')">
+                                <i data-lucide="tag" style="width:10px; height:10px;"></i>#${tag}
+                            </span>
+                        `).join("")}
+                    </div>
+
+                    <div class="post-content-grid">
+                        <div class="post-main-content">
+                            ${marked.parse(post.main)}
+                        </div>
+                        <aside class="post-sidebar">
+                            ${sidebarContent}
+                        </aside>
+                    </div>
+
+                    <div class="post-footer">
+                        <div class="post-footer-left">
+                            ${post.footer || "Personal Entry"}
+                        </div>
+                        <div class="post-footer-right">
+                            <i data-lucide="calendar"></i>
+                            <span>${postDateString}</span>
+                        </div>
+                    </div>
+                `;
+
+                container.appendChild(postElement);
+            });
+
+            // Initialize icons for generated content
+            lucide.createIcons();
+        }
+
+        /* =========================================================
+           EDIT / DELETE POST LOGIC
+        ========================================================= */
+
+        function editPost(id) {
+            const post = posts.find(p => p.id === id);
+            if (!post) return;
+
+            editingPostId = post.id;
+            document.getElementById("editorFormTitle").innerText = "Edit Blog Post";
+            document.getElementById("publishBtnText").innerText = "Save Changes";
+
+            // Populate editor fields
+            document.getElementById("titleInput").value = post.title;
+            document.getElementById("tagsInput").value = post.tags ? post.tags.join(", ") : "";
+            document.getElementById("mainInput").value = post.main;
+            document.getElementById("sidebarInput").value = post.sidebar;
+            document.getElementById("footerInput").value = post.footer || "";
+
+            // Open editor panel
+            editor.style.display = "block";
+            addBtn.classList.add("clicked");
+            
+            editor.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            setEditorTab("write");
+        }
+
+        let postToDeleteId = null;
+
+        function triggerDeletePost(id) {
+            postToDeleteId = id;
+            const modal = document.getElementById("deleteModal");
+            modal.style.display = "flex";
+
+            // Click listener for confirmed action
+            document.getElementById("confirmDeleteBtn").onclick = () => {
+                if (postToDeleteId) {
+                    posts = posts.filter(p => p.id !== postToDeleteId);
+                    savePostsToStorage();
+                    closeDeleteModal();
+                    renderPosts();
+                    showToast("Post deleted successfully.");
+                }
+            };
+        }
+
+        function closeDeleteModal() {
+            document.getElementById("deleteModal").style.display = "none";
+            postToDeleteId = null;
+        }
+
+        /* =========================================================
+           SEARCH & FILTERS
+        ========================================================= */
+
+        function setupSearch() {
+            const searchInput = document.getElementById("searchInput");
+            searchInput.addEventListener("input", (e) => {
+                searchQuery = e.target.value;
+                renderPosts();
+            });
+        }
+
+        function filterByTag(tag) {
+            activeTagFilter = tag;
+            renderPosts();
+            // Scroll down to Latest Posts section header
+            document.querySelector(".section-header-row").scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+
+        function clearTagFilter() {
+            activeTagFilter = null;
+            renderPosts();
         }
 
     </script>
-
 </body>
 </html>
