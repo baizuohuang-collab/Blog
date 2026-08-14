@@ -1137,6 +1137,30 @@
         const API_BASE = window.location.origin.startsWith('file://') ? 'http://localhost:3000' : '';
         const API_URL = `${API_BASE}/api/posts`;
 
+        async function authenticatedFetch(url, options = {}) {
+            if (!options.headers) {
+                options.headers = {};
+            }
+            const password = localStorage.getItem("blog_admin_password") || "";
+            options.headers["X-Admin-Password"] = password;
+
+            let res = await fetch(url, options);
+
+            if (res.status === 401) {
+                const newPassword = prompt("Enter Admin Password to execute this action:");
+                if (newPassword !== null) {
+                    localStorage.setItem("blog_admin_password", newPassword);
+                    options.headers["X-Admin-Password"] = newPassword;
+                    res = await fetch(url, options);
+                    if (res.status === 401) {
+                        localStorage.removeItem("blog_admin_password");
+                        showToast("Incorrect Admin Password.", "error");
+                    }
+                }
+            }
+            return res;
+        }
+
         let posts = [];
         let editingPostId = null;
         let activeTagFilter = null;
@@ -1805,7 +1829,7 @@
             try {
                 if (editingPostId !== null) {
                     // Edit mode - PUT API
-                    const res = await fetch(`${API_URL}/${editingPostId}`, {
+                    const res = await authenticatedFetch(`${API_URL}/${editingPostId}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ title, main, sidebar, footer, tags })
@@ -1822,7 +1846,7 @@
                 } else {
                     // Create mode - POST API
                     const dateStr = new Date().toLocaleString();
-                    const res = await fetch(API_URL, {
+                    const res = await authenticatedFetch(API_URL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ title, main, sidebar, footer, tags, date: dateStr })
@@ -2003,7 +2027,7 @@
                     confirmBtn.innerText = "Deleting...";
 
                     try {
-                        const res = await fetch(`${API_URL}/${postToDeleteId}`, {
+                        const res = await authenticatedFetch(`${API_URL}/${postToDeleteId}`, {
                             method: 'DELETE'
                         });
                         if (!res.ok) throw new Error("Failed to delete post from database");

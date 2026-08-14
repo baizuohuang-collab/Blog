@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
+const pg = require('pg');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -13,43 +14,77 @@ app.use(express.json());
 // Serve static frontend files
 app.use(express.static(__dirname));
 
-// Initialize Database connection
+/* =========================================================
+   DATABASE INITIALIZATION (SQLITE OR POSTGRES)
+========================================================= */
+
+const usePostgres = !!process.env.DATABASE_URL;
+let dbType = 'sqlite';
+let pgPool = null;
+let sqliteDb = null;
+
 const dbPath = path.join(__dirname, 'database.db');
-const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-        console.error('Error opening database:', err.message);
-    } else {
-        console.log('Connected to the SQLite database.');
-        initializeDatabase();
+
+if (usePostgres) {
+    dbType = 'postgres';
+    pgPool = new pg.Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: {
+            rejectUnauthorized: false // Required for Supabase/Neon connection on Render/Fly.io
+        }
+    });
+    console.log('Using PostgreSQL cloud database.');
+    initializeDatabase();
+} else {
+    dbType = 'sqlite';
+    sqliteDb = new sqlite3.Database(dbPath, (err) => {
+        if (err) {
+            console.error('Error opening SQLite database:', err.message);
+        } else {
+            console.log('Using SQLite local database (database.db).');
+            initializeDatabase();
+        }
+    });
+}
+
+// Convert SQLite parameter marker '?' to PostgreSQL parameter marker '$1', '$2', etc.
+function convertSql(sql, targetType) {
+    if (targetType === 'postgres') {
+        let index = 1;
+        return sql.replace(/\?/g, () => `$${index++}`);
     }
-});
+    return sql;
+}
 
-// Helper functions to wrap sqlite3 methods in Promises
-const dbRun = (sql, params = []) => {
-    return new Promise((resolve, reject) => {
-        db.run(sql, params, function (err) {
-            if (err) reject(err);
-            else resolve(this);
+// Promisified database helpers for compatibility between SQLite and pg
+const dbRun = async (sql, params = []) => {
+    if (dbType === 'postgres') {
+        const pgSql = convertSql(sql, 'postgres');
+        const res = await pgPool.query(pgSql, params);
+        return { changes: res.rowCount };
+    } else {
+        return new Promise((resolve, reject) => {
+            sqliteDb.run(sql, params, function (err) {
+                if (err) reject(err);
+                else resolve({ changes: this.changes });
+            });
         });
-    });
+    }
 };
 
-const dbAll = (sql, params = []) => {
-    return new Promise((resolve, reject) => {
-        db.all(sql, params, (err, rows) => {
-            if (err) reject(err);
-            else resolve(rows);
+const dbAll = async (sql, params = []) => {
+    if (dbType === 'postgres') {
+        const pgSql = convertSql(sql, 'postgres');
+        const res = await pgPool.query(pgSql, params);
+        return res.rows;
+    } else {
+        return new Promise((resolve, reject) => {
+            sqliteDb.all(sql, params, (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
+            });
         });
-    });
-};
-
-const dbGet = (sql, params = []) => {
-    return new Promise((resolve, reject) => {
-        db.get(sql, params, (err, row) => {
-            if (err) reject(err);
-            else resolve(row);
-        });
-    });
+    }
 };
 
 // Create tables if they do not exist
@@ -65,20 +100,41 @@ async function initializeDatabase() {
                 tags TEXT, -- Store tags as JSON array string, e.g. '["tag1", "tag2"]'
                 date TEXT NOT NULL,
                 editDate TEXT,
-                created_at INTEGER NOT NULL
+                created_at BIGINT NOT NULL
             )
         `);
-        console.log('Database tables initialized.');
+        console.log('Database tables verified/initialized.');
     } catch (err) {
         console.error('Database initialization failed:', err.message);
     }
 }
 
 /* =========================================================
+   SECURITY MIDDLEWARE (ADMIN PASSWORD)
+========================================================= */
+
+const checkAdminPassword = (req, res, next) => {
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    
+    // If no password is set on the server, bypass security (useful for local development)
+    if (!adminPassword) {
+        return next();
+    }
+
+    const clientPassword = req.headers['x-admin-password'];
+    
+    if (clientPassword === adminPassword) {
+        return next();
+    }
+    
+    res.status(401).json({ error: 'Unauthorized: Admin Password is required or incorrect.' });
+};
+
+/* =========================================================
    REST API ROUTES
 ========================================================= */
 
-// Get all posts
+// 1. Get all posts (PUBLIC)
 app.get('/api/posts', async (req, res) => {
     try {
         const rows = await dbAll('SELECT * FROM posts ORDER BY created_at DESC');
@@ -96,8 +152,8 @@ app.get('/api/posts', async (req, res) => {
     }
 });
 
-// Create a new post
-app.post('/api/posts', async (req, res) => {
+// 2. Create a new post (SECURED)
+app.post('/api/posts', checkAdminPassword, async (req, res) => {
     const { id, title, main, sidebar, footer, tags, date } = req.body;
     
     if (!title || !main) {
@@ -131,8 +187,8 @@ app.post('/api/posts', async (req, res) => {
     }
 });
 
-// Update a post
-app.put('/api/posts/:id', async (req, res) => {
+// 3. Update a post (SECURED)
+app.put('/api/posts/:id', checkAdminPassword, async (req, res) => {
     const { id } = req.params;
     const { title, main, sidebar, footer, tags, editDate } = req.body;
 
@@ -170,8 +226,8 @@ app.put('/api/posts/:id', async (req, res) => {
     }
 });
 
-// Delete a post
-app.delete('/api/posts/:id', async (req, res) => {
+// 4. Delete a post (SECURED)
+app.delete('/api/posts/:id', checkAdminPassword, async (req, res) => {
     const { id } = req.params;
 
     try {
